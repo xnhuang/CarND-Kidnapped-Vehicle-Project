@@ -232,4 +232,21 @@ inline bool read_landmark_data(std::string filename, std::vector<LandmarkObs>& o
 	return true;
 }
 
+inline double normalize_angle(double angle) {
+    if (angle > M_PI){
+        angle = fmod((angle - M_PI),(2*M_PI)) - M_PI;
+    }
+    if (angle < -M_PI){
+        angle = fmod((angle + M_PI),(2*M_PI)) + M_PI;
+    }
+    return angle;
+}
+
+inline LandmarkObs coordinate_transform(LandmarkObs local, double ego_x, double ego_y, double ego_theta){
+    LandmarkObs global;
+    global.id = local.id;
+    global.x = local.x*cos(ego_theta)-local.y*sin(ego_theta)+ego_x;
+    global.y = local.x*sin(ego_theta)+local.y*cos(ego_theta)+ego_y;
+    return  global;
+}
 #endif /* HELPER_FUNCTIONS_H_ */
