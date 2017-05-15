@@ -116,14 +116,23 @@ int main() {
 		// Calculate and output the average weighted error of the particle filter over all time steps so far.
 		vector<Particle> particles = pf.particles;
 		int num_particles = particles.size();
-		double highest_weight = particles[0].weight;
-		Particle best_particle = particles[0];
-		for (int i = 0; i < num_particles; ++i) {
-			if (particles[i].weight > highest_weight) {
-				highest_weight = particles[i].weight;
-				best_particle = particles[i];
-			}
-		}
+
+        // location update
+        Particle best_particle;
+        double total_weight = 0;
+        best_particle.x = 0;
+        best_particle.y = 0;
+        best_particle.theta = 0;
+        for (int i = 0; i < num_particles; ++i) {
+            best_particle.x += (particles[i].weight * particles[i].x);
+            best_particle.y += (particles[i].weight * particles[i].y);
+            best_particle.theta += (particles[i].weight * particles[i].theta);
+            total_weight += particles[i].weight;
+        }
+        best_particle.x /= total_weight;
+        best_particle.y /= total_weight;
+        best_particle.theta /= total_weight;
+
 		double *avg_error = getError(gt[i].x, gt[i].y, gt[i].theta, best_particle.x, best_particle.y, best_particle.theta);
 
 		for (int j = 0; j < 3; ++j) {
