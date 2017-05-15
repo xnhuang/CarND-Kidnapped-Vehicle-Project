@@ -25,8 +25,6 @@ int main() {
 	double max_translation_error = 1; // Max allowable translation error to pass [m]
 	double max_yaw_error = 0.05; // Max allowable yaw error [rad]
 
-
-
 	// Start timer.
 	int start = clock();
 	
@@ -39,8 +37,8 @@ int main() {
 	 * if you used fused data from multiple sensors, it's difficult to find
 	 * these uncertainties directly.
 	 */
-	double sigma_pos [3] = {0.3, 0.3, 0.01}; // GPS measurement uncertainty [x [m], y [m], theta [rad]]
-	double sigma_landmark [2] = {0.3, 0.3}; // Landmark measurement uncertainty [x [m], y [m]]
+    std::vector<double> sigma_landmark({0.3, 0.3, 0.01}); // GPS measurement uncertainty [x [m], y [m], theta [rad]]
+    std::vector<double> sigma_pos({0.3, 0.3}); // Landmark measurement uncertainty [x [m], y [m]]
 
 	// noise generation
 	default_random_engine gen;
@@ -73,7 +71,7 @@ int main() {
 	
 	// Run particle filter!
 	int num_time_steps = position_meas.size();
-	ParticleFilter pf;
+	ParticleFilter pf(25);
 	double total_error[3] = {0,0,0};
 	double cum_mean_error[3] = {0,0,0};
 	
@@ -118,8 +116,8 @@ int main() {
 		// Calculate and output the average weighted error of the particle filter over all time steps so far.
 		vector<Particle> particles = pf.particles;
 		int num_particles = particles.size();
-		double highest_weight = 0.0;
-		Particle best_particle;
+		double highest_weight = particles[0].weight;
+		Particle best_particle = particles[0];
 		for (int i = 0; i < num_particles; ++i) {
 			if (particles[i].weight > highest_weight) {
 				highest_weight = particles[i].weight;

@@ -13,6 +13,7 @@
 #include <math.h>
 #include <vector>
 #include "map.h"
+#include "Eigen/Dense"
 
 /*
  * Struct representing one position/control measurement.
@@ -231,17 +232,61 @@ inline bool read_landmark_data(std::string filename, std::vector<LandmarkObs>& o
 	}
 	return true;
 }
-
+/* normalize angle to be in range of [0,2pi].
+ * @param angle angle to be normalized.
+ * @output normalized angle
+ */
 inline double normalize_angle(double angle) {
-    if (angle > M_PI){
-        angle = fmod((angle - M_PI),(2*M_PI)) - M_PI;
+    if (angle > 2*M_PI){
+        angle = fmod((angle - 2*M_PI),(2*M_PI));
     }
-    if (angle < -M_PI){
-        angle = fmod((angle + M_PI),(2*M_PI)) + M_PI;
+    if (angle < 0){
+        angle = fmod((angle + 2*M_PI),(2*M_PI));
     }
     return angle;
 }
+/* get mvnpdf
+ * @param x location for pdf
+ * @param mu, covariance parameter for mvn
+ * @output mvnpdf
+ */
+inline double mvnpdf(Eigen::VectorXd x, Eigen::VectorXd mu, Eigen::MatrixXd covariance) {
+    Eigen::VectorXd center = x-mu;
+    int dimension = mu.size();
+    double maha_dist = center.transpose()*covariance.inverse()*center;
+    double covariance_norm = covariance.determinant();
+    double pdf = pow(2*M_PI, -dimension/2)*pow(covariance_norm,-0.5)*exp(-0.5*maha_dist);
+    return pdf;
+}
+/* get mvnpdf for independent components
+ * @param x location for pdf
+ * @param mu, covariance parameter for mvn under independence assumption
+ * @output mvnpdf
+ */
+inline double mvnpdf(std::vector<double> x, std::vector<double> mu,  std::vector<double> sigma) {
+    int dimension = mu.size();
+    double* x_temp = &x[0];
+    double* mu_temp = &mu[0];
+    double* sigma_temp = &sigma[0];
+    Eigen::Map<Eigen::VectorXd> x_eigen(x_temp,dimension);
+    Eigen::Map<Eigen::VectorXd> mu_eigen(mu_temp,dimension);
+    Eigen::Map<Eigen::VectorXd> sigma_eigen(sigma_temp,dimension);
+    sigma_eigen.array().pow(2);
+    Eigen::MatrixXd covariance = sigma_eigen.asDiagonal();
 
+    Eigen::VectorXd center = x_eigen-mu_eigen;
+    double maha_dist = center.transpose()*covariance.inverse()*center;
+    double covariance_norm = covariance.determinant();
+    double pdf = pow(2*M_PI, -dimension/2)*pow(covariance_norm,-0.5)*exp(-0.5*maha_dist);
+    return pdf;
+}
+
+/* transform local coordinate to global coordinate
+ * @param ego_x,ego_y origin location for local cooridnate
+ * @param ego_theta angle for local coordinate
+ * @param local local cooridnate to be transformed, struct LandmarkObs
+ * @output global  LandmarkObs in global coordinate
+ */
 inline LandmarkObs coordinate_transform(LandmarkObs local, double ego_x, double ego_y, double ego_theta){
     LandmarkObs global;
     global.id = local.id;

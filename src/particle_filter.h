@@ -10,7 +10,6 @@
 #define PARTICLE_FILTER_H_
 
 #include "helper_functions.h"
-
 struct Particle {
 
 	int id;
@@ -43,7 +42,7 @@ public:
 	// Constructor
 	// @param M Number of particles
 	ParticleFilter() : num_particles(0), is_initialized(false) {}
-
+    ParticleFilter(int M) : num_particles(M), is_initialized(false) {}
 	// Destructor
 	~ParticleFilter() {}
 
@@ -56,7 +55,7 @@ public:
 	 * @param std[] Array of dimension 3 [standard deviation of x [m], standard deviation of y [m]
 	 *   standard deviation of yaw [rad]]
 	 */
-	void init(double x, double y, double theta, double std[]);
+	void init(double x, double y, double theta, std::vector<double> std);
 
 	/**
 	 * prediction Predicts the state for the next time step
@@ -67,16 +66,27 @@ public:
 	 * @param velocity Velocity of car from t to t+1 [m/s]
 	 * @param yaw_rate Yaw rate of car from t to t+1 [rad/s]
 	 */
-	void prediction(double delta_t, double std_pos[], double velocity, double yaw_rate);
+	void prediction(double delta_t, std::vector<double> std_pos, double velocity, double yaw_rate);
 	
 	/**
 	 * dataAssociation Finds which observations correspond to which landmarks (likely by using
 	 *   a nearest-neighbors data association).
-	 * @param predicted Vector of predicted landmark observations
+	 * @param map_landmarks Vector of landmark map
 	 * @param observations Vector of landmark observations
+	 * @param observations_match output vector of matched observations
+	 * @param landmark_match output vector of matched landmarks
+	 * @param distance_x x distance between observation and landmark
+	 * @param distance_y y distance between observation and landmark
+	 * @param self_x, self_y, self_theta particle pose used for coordinate transform
+	 * @param sensor_range sensor range for landmark filter
+	 * @param weight vector of mvnpdf for each observation
+	 * @return total weight for the particle
 	 */
-	void dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations);
-	
+    double dataAssociation(Map map_landmarks, std::vector<LandmarkObs>& observations,
+                         std::vector<LandmarkObs>& observations_match, std::vector<LandmarkObs>& landmark_match,
+                         std::vector<double>& distance_x, std::vector<double>& distance_y,
+                         std::vector<double>& weight, std::vector<double> std_landmark,
+                         double self_x, double self_y, double self_theta, double sensor_range);
 	/**
 	 * updateWeights Updates the weights for each particle based on the likelihood of the 
 	 *   observed measurements. 
@@ -86,8 +96,8 @@ public:
 	 * @param observations Vector of landmark observations
 	 * @param map Map class containing map landmarks
 	 */
-	void updateWeights(double sensor_range, double std_landmark[], std::vector<LandmarkObs> observations,
-			Map map_landmarks);
+	void updateWeights(double sensor_range, std::vector<double> std_landmark,
+                       std::vector<LandmarkObs> observations, Map map_landmarks);
 	
 	/**
 	 * resample Resamples from the updated set of particles to form
